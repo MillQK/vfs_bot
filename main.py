@@ -109,12 +109,15 @@ async def fill_appointment_details(tab: uc.Tab, centers: list[str]):
 
     for center in centers:
         await wait_loader(tab)
+        await tab.scroll_up(amount=100)
+        await random_sleep(max_millis=1000)
 
         centre_selector, category_selector, sub_category_selector = await tab.select_all(selector='mat-form-field')
         logging.info("Awaited dropdowns")
 
         appointment_center_details = center_to_appointment_center_details[center]
 
+        await centre_selector.scroll_into_view()
         await centre_selector.mouse_click()
         center_dropdown_option = await find_dropdown_option_with_label(tab, appointment_center_details.center)
         await center_dropdown_option.click()
@@ -122,6 +125,7 @@ async def fill_appointment_details(tab: uc.Tab, centers: list[str]):
 
         await wait_loader(tab)
 
+        await category_selector.scroll_into_view()
         await category_selector.mouse_click()
         category_dropdown_option = await find_dropdown_option_with_label(tab, appointment_center_details.category)
         await category_dropdown_option.click()
@@ -130,6 +134,7 @@ async def fill_appointment_details(tab: uc.Tab, centers: list[str]):
         await wait_loader(tab)
         await random_sleep(max_millis=1000)
 
+        await sub_category_selector.scroll_into_view()
         await sub_category_selector.mouse_click()
         sub_category_dropdown_option = await find_dropdown_option_with_label(tab, appointment_center_details.sub_category)
         await sub_category_dropdown_option.click()
@@ -153,6 +158,7 @@ async def fill_personal_details(tab: uc.Tab, personal_data: PersonalData):
     await last_name_input.send_keys(personal_data.last_name)
 
     gender_selector = await find_dropdown_with_label(tab, 'Gender')
+    await gender_selector.scroll_into_view()
     await gender_selector.mouse_click()
     gender_selector_option = await find_dropdown_option_with_label(tab, personal_data.gender)
     await gender_selector_option.click()
@@ -161,6 +167,7 @@ async def fill_personal_details(tab: uc.Tab, personal_data: PersonalData):
     await date_of_birth.send_keys(personal_data.date_of_birth)
 
     nationality_selector = await find_dropdown_with_label(tab, 'Current Nationality')
+    await nationality_selector.scroll_into_view()
     await nationality_selector.mouse_click()
     nationality_selector_option = await find_dropdown_option_with_label(tab, personal_data.nationality)
     await nationality_selector_option.click()
@@ -193,8 +200,9 @@ async def select_slot(tab: uc.Tab, slot_info: SlotInfo):
 
     while True:
         await wait_loader(tab)
+        await tab.scroll_up(amount=300)
         # it takes some time to load slots
-        await asyncio.sleep(5)
+        await asyncio.sleep(3)
 
         logging.info("selecting all slots")
         all_month_slots = await tab.select_all(selector='td[data-date]')
@@ -216,17 +224,20 @@ async def select_slot(tab: uc.Tab, slot_info: SlotInfo):
             slot_date = parse_slot_date(slot.attrs['data-date'])
             if (slot_date >= from_date) and (slot_date <= to_date) and (slot.attrs['class_'].find('date-availiable') != -1):
                 logging.info(f"day with slot was found for {slot_date} date, selecting it")
+                await slot.scroll_into_view()
                 await slot.children[0].mouse_click()
                 await wait_loader(tab)
                 logging.info("selecting slot time")
                 select_slot_button = await tab.select(selector='input[type="radio"][name="SlotRadio"]')
                 if select_slot_button is not None:
                     logging.info("found slot time button, clicking it")
+                    await select_slot_button.scroll_into_view()
                     await select_slot_button.click()
                     return
 
         logging.info("slot wasn't found this month, go to the next month")
         next_month_button = await find_next_month_calendar_button(tab)
+        await next_month_button.scroll_into_view()
         await next_month_button.click()
 
 async def review_appointment(tab: uc.Tab):
@@ -263,7 +274,7 @@ async def find_dropdown_option_with_label(tab: uc.Tab, label: str) -> uc.Element
         if dropdown_option.text.find(label) != -1:
             return await dropdown_option.parent
 
-    raise RuntimeError(f'Unable to find a dropdown with label {label}')
+    raise RuntimeError(f'Unable to find a dropdown option with label {label}')
 
 async def find_next_month_calendar_button(tab: uc.Tab) -> uc.Element:
     return await tab.select(selector='button[title="Next month"]')
