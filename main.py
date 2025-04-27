@@ -11,11 +11,22 @@ import nodriver as uc
 
 script_dir = pathlib.Path(__file__).resolve().parent
 
-centre_to_selectors_options = {
-    'Ekaterinburg' : ['EKA', 'CRFM'],
-    'Moscow' : ['NVAC', 'VIS'],
-    'Vladivostok' : ['VLA', 'VIS'],
-    'Saint-Petersburg' : ['NVAS', 'VIS'],
+class AppointmentCenterDetails:
+    def __init__(
+            self,
+            center: str,
+            category: str,
+            sub_category: str,
+    ):
+        self.center = center
+        self.category = category
+        self.sub_category = sub_category
+
+center_to_appointment_center_details = {
+    'Ekaterinburg' : AppointmentCenterDetails('Ekaterinburg', 'Short Stay', 'Close relatives'),
+    'Moscow' : AppointmentCenterDetails('Moscow', 'Short Stay', 'FAMILY VISIT'),
+    'Vladivostok' : AppointmentCenterDetails('Vladivostok', 'Short Stay', 'FAMILY VISIT'),
+    'Saint-Petersburg' : AppointmentCenterDetails('Saint-Petersburg', 'Short Stay', 'FAMILY VISIT'),
 }
 
 async def main(conf: AppConfig):
@@ -58,14 +69,14 @@ async def main(conf: AppConfig):
             logging.info("Booked a slot")
             return
         except Exception as ex:
-            # uncomment for debug
-            # await asyncio.sleep(10000)
             if isinstance(ex, NoSlotsError):
                 browser.stop()
                 logging.info("No slots available, sleep for additional 1 minute")
                 await asyncio.sleep(60)
             else:
                 logging.exception("Caught an exception a slot booking:")
+                # uncomment for debug
+                # await asyncio.sleep(10000)
                 await tab.save_screenshot(script_dir / f'{datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")}-result.jpeg', full_page=True)
                 browser.stop()
 
@@ -96,38 +107,38 @@ async def fill_appointment_details(tab: uc.Tab, centers: list[str]):
     logging.info("Awaited form with fields")
     await asyncio.sleep(3)
 
-    centre_selector, category_selector, sub_category_selector = await tab.select_all(selector='mat-form-field')
-    logging.info("Awaited dropdowns")
-
     for center in centers:
         await wait_loader(tab)
 
-        center_selector_mat_option, center_selector_subcategory_option = centre_to_selectors_options[center]
+        centre_selector, category_selector, sub_category_selector = await tab.select_all(selector='mat-form-field')
+        logging.info("Awaited dropdowns")
+
+        appointment_center_details = center_to_appointment_center_details[center]
 
         await centre_selector.mouse_click()
-        center_dropdown_option = await tab.select(selector=f'mat-option[id="{center_selector_mat_option}"]')
+        center_dropdown_option = await find_dropdown_option_with_label(tab, appointment_center_details.center)
         await center_dropdown_option.click()
         logging.info("Selected center dropdown option")
 
         await wait_loader(tab)
 
         await category_selector.mouse_click()
-        category_dropdown_option = await tab.select(selector=f'mat-option[id="SS"]')
+        category_dropdown_option = await find_dropdown_option_with_label(tab, appointment_center_details.category)
         await category_dropdown_option.click()
         logging.info("Selected category dropdown option")
 
         await wait_loader(tab)
-        await random_sleep()
+        await random_sleep(max_millis=1000)
 
         await sub_category_selector.mouse_click()
-        sub_category_dropdown_option = await tab.select(selector=f'mat-option[id="{center_selector_subcategory_option}"]')
+        sub_category_dropdown_option = await find_dropdown_option_with_label(tab, appointment_center_details.sub_category)
         await sub_category_dropdown_option.click()
         logging.info("Selected sub-category dropdown option")
 
         await wait_loader(tab)
 
-        alert_banner = await tab.select(selector='div.alert')
-        if alert_banner.text.find('no appointment slots are currently available') == -1:
+        alert_banner = await tab.select(selector='div.alert.alert-info.alert-info-blue')
+        if alert_banner.text.find('no appointment slots') == -1:
             return
 
     raise NoSlotsError("There're no available slots")
