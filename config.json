@@ -1,0 +1,26 @@
+{
+  "login_info": {
+    "email": "example@example.com",
+    "password": "example_password"
+  },
+  "personal_data": {
+    "first_name": "FirstName",
+    "last_name": "LastName",
+    "gender": "Male",
+    "date_of_birth": "01/01/2000",
+    "nationality": "ExampleNationality",
+    "passport_number": "1234567",
+    "passport_expiry_date": "01/12/2100",
+    "contact_number_country_code": "100",
+    "contact_number_rest": "123456789",
+    "email": "example@example.com"
+  },
+  "slot_info": {
+    "now_start_interval_days": 14,
+    "now_end_interval_days": 80
+  },
+  "centers": [
+    "Moscow",
+    "Ekaterinburg"
+  ]
+}
