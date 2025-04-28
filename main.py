@@ -6,7 +6,7 @@ import random
 
 from config import AppConfig, PersonalData, LoginInfo, SlotInfo
 from datetime import date, datetime, timedelta, UTC
-from utils import NoSlotsError
+from utils import NoSlotsError, UnableToLoginError
 import nodriver as uc
 
 script_dir = pathlib.Path(__file__).resolve().parent
@@ -34,15 +34,19 @@ async def main(conf: AppConfig):
         browser = await uc.start(browser_args=['--guest'])
         tab = await browser.get('https://visa.vfsglobal.com/rus/en/nld/login')
         try:
-            await perform_login(tab, conf.login_info)
+            try:
+                await perform_login(tab, conf.login_info)
 
-            await wait_loader(tab)
-            await random_sleep(max_millis=1500)
-            await wait_loader(tab)
+                await wait_loader(tab)
+                await random_sleep(max_millis=1500)
+                await wait_loader(tab)
 
-            start_new_booking_button = await find_button_with_text(tab, 'Start New Booking')
-            await start_new_booking_button.click()
-            logging.info("Started new booking")
+                start_new_booking_button = await find_button_with_text(tab, 'Start New Booking')
+                await start_new_booking_button.click()
+                logging.info("Started new booking")
+            except RuntimeError:
+                logging.exception("Throw unable to login exception")
+                raise UnableToLoginError("Can't login")
 
             await fill_appointment_details(tab, conf.centers)
             continue_button = await find_button_with_text(tab, text='Continue')
@@ -73,6 +77,10 @@ async def main(conf: AppConfig):
             if isinstance(ex, NoSlotsError):
                 browser.stop()
                 logging.info("No slots available, retry later")
+            elif isinstance(ex, UnableToLoginError):
+                browser.stop()
+                logging.info("Unable to login, sleep additional time")
+                await asyncio.sleep(30)
             else:
                 logging.exception("Caught an exception a slot booking:")
                 # uncomment for debug
