@@ -38,6 +38,7 @@ async def main(conf: AppConfig):
 
             await wait_loader(tab)
             await random_sleep(max_millis=1500)
+            await wait_loader(tab)
 
             start_new_booking_button = await find_button_with_text(tab, 'Start New Booking')
             await start_new_booking_button.click()
@@ -96,7 +97,7 @@ async def perform_login(tab: uc.Tab, login_info: LoginInfo):
     logging.info("Filled email and password")
 
     try:
-        signin_button = await find_button_with_text(tab, 'Sign In', timeout=5)
+        signin_button = await find_button_with_text(tab, 'Sign In')
         await random_sleep(max_millis=500)
         await signin_button.mouse_click()
         logging.info("Clicked sign in button")
@@ -251,34 +252,58 @@ async def review_appointment(tab: uc.Tab):
     await accept_terms_checkbox.click()
 
 async def find_button_with_text(tab: uc.Tab, text: str, timeout: int = 10) -> uc.Element:
-    buttons = await tab.select_all(selector='button:has(span[class="mdc-button__label"]):enabled', timeout=timeout)
-    for button in buttons:
-        if button.text.find(text) != -1:
-            return button
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+
+    while loop.time() - start <= timeout:
+        buttons = await tab.select_all(selector='button:has(span[class="mdc-button__label"]):enabled', timeout=timeout)
+        for button in buttons:
+            if button.text.find(text) != -1:
+                return button
+
+        await tab.sleep(0.5)
 
     raise RuntimeError()
 
-async def find_input_with_label(tab: uc.Tab, label: str) -> uc.Element:
-    label_elems = await tab.select_all(selector='app-input-control > div > div')
-    for label_elem in label_elems:
-        if label_elem.text.find(label) != -1:
-            return await label_elem.parent.query_selector(selector='input')
+async def find_input_with_label(tab: uc.Tab, label: str, timeout: int = 10) -> uc.Element:
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+
+    while loop.time() - start <= timeout:
+        label_elems = await tab.select_all(selector='app-input-control > div > div', timeout=timeout)
+        for label_elem in label_elems:
+            if label_elem.text.find(label) != -1:
+                return await label_elem.parent.query_selector(selector='input')
+
+        await tab.sleep(0.5)
 
     raise RuntimeError(f'Unable to find an input with label {label}')
 
-async def find_dropdown_with_label(tab: uc.Tab, label: str) -> uc.Element:
-    dropdown_elems = await tab.select_all(selector='app-dropdown > div > div')
-    for dropdown_elem in dropdown_elems:
-        if dropdown_elem.text.find(label) != -1:
-            return await dropdown_elem.parent.query_selector(selector='mat-form-field')
+async def find_dropdown_with_label(tab: uc.Tab, label: str, timeout: int = 10) -> uc.Element:
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+
+    while loop.time() - start <= timeout:
+        dropdown_elems = await tab.select_all(selector='app-dropdown > div > div', timeout=timeout)
+        for dropdown_elem in dropdown_elems:
+            if dropdown_elem.text.find(label) != -1:
+                return await dropdown_elem.parent.query_selector(selector='mat-form-field')
+
+        await tab.sleep(0.5)
 
     raise RuntimeError(f'Unable to find a dropdown with label {label}')
 
-async def find_dropdown_option_with_label(tab: uc.Tab, label: str) -> uc.Element:
-    dropdown_options = await tab.select_all(selector='mat-option > span')
-    for dropdown_option in dropdown_options:
-        if dropdown_option.text.find(label) != -1:
-            return await dropdown_option.parent
+async def find_dropdown_option_with_label(tab: uc.Tab, label: str, timeout: int = 10) -> uc.Element:
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+
+    while loop.time() - start <= timeout:
+        dropdown_options = await tab.select_all(selector='mat-option > span', timeout=timeout)
+        for dropdown_option in dropdown_options:
+            if dropdown_option.text.find(label) != -1:
+                return await dropdown_option.parent
+
+        await tab.sleep(0.5)
 
     raise RuntimeError(f'Unable to find a dropdown option with label {label}')
 
