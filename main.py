@@ -37,7 +37,7 @@ async def main(conf: AppConfig):
             await perform_login(tab, conf.login_info)
 
             await wait_loader(tab)
-            await random_sleep(max_millis=3000)
+            await random_sleep(max_millis=1500)
 
             start_new_booking_button = await find_button_with_text(tab, 'Start New Booking')
             await start_new_booking_button.click()
@@ -96,16 +96,16 @@ async def perform_login(tab: uc.Tab, login_info: LoginInfo):
     await password_input.send_keys(login_info.password)
     logging.info("Filled email and password")
 
-    await tab.sleep(3)
     try:
-        signin_button = await find_button_with_text(tab, 'Sign In')
+        signin_button = await find_button_with_text(tab, 'Sign In', timeout=5)
+        await random_sleep(max_millis=500)
         await signin_button.mouse_click()
         logging.info("Clicked sign in button")
     except RuntimeError:
         logging.exception("Unable to press sign in button, most probably cf check")
         await tab.verify_cf()
-        await tab.sleep(2)
         signin_button = await find_button_with_text(tab, 'Sign In')
+        await random_sleep(max_millis=500)
         await signin_button.mouse_click()
         logging.info("Clicked sign in button")
 
@@ -113,7 +113,6 @@ async def perform_login(tab: uc.Tab, login_info: LoginInfo):
 async def fill_appointment_details(tab: uc.Tab, centers: list[str]):
     await tab.wait_for(selector='mat-card')
     logging.info("Awaited form with fields")
-    await asyncio.sleep(3)
 
     for center in centers:
         await wait_loader(tab)
@@ -210,7 +209,7 @@ async def select_slot(tab: uc.Tab, slot_info: SlotInfo):
         await wait_loader(tab)
         await tab.scroll_up(amount=300)
         # it takes some time to load slots
-        await asyncio.sleep(3)
+        await asyncio.sleep(2)
 
         logging.info("selecting all slots")
         all_month_slots = await tab.select_all(selector='td[data-date]')
@@ -252,8 +251,8 @@ async def review_appointment(tab: uc.Tab):
     accept_terms_checkbox = await tab.select(selector='input[type="checkbox"][value="VAS T&Cs"]')
     await accept_terms_checkbox.click()
 
-async def find_button_with_text(tab: uc.Tab, text: str) -> uc.Element:
-    buttons = await tab.select_all(selector='button:has(span[class="mdc-button__label"]):enabled')
+async def find_button_with_text(tab: uc.Tab, text: str, timeout: int = 10) -> uc.Element:
+    buttons = await tab.select_all(selector='button:has(span[class="mdc-button__label"]):enabled', timeout=timeout)
     for button in buttons:
         if button.text.find(text) != -1:
             return button
