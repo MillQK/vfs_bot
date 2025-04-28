@@ -97,9 +97,17 @@ async def perform_login(tab: uc.Tab, login_info: LoginInfo):
     logging.info("Filled email and password")
 
     await tab.sleep(3)
-    signin_button = await find_button_with_text(tab, 'Sign In')
-    await signin_button.mouse_click()
-    logging.info("Clicked sign in button")
+    try:
+        signin_button = await find_button_with_text(tab, 'Sign In')
+        await signin_button.mouse_click()
+        logging.info("Clicked sign in button")
+    except RuntimeError:
+        logging.exception("Unable to press sign in button, most probably cf check")
+        await tab.verify_cf()
+        await tab.sleep(2)
+        signin_button = await find_button_with_text(tab, 'Sign In')
+        await signin_button.mouse_click()
+        logging.info("Clicked sign in button")
 
 
 async def fill_appointment_details(tab: uc.Tab, centers: list[str]):
