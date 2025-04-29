@@ -72,6 +72,8 @@ async def main(conf: AppConfig):
 
             await wait_loader(tab)
             logging.info("Booked a slot")
+            await tab.save_screenshot(script_dir / f'booked-slot-{datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")}.jpeg',
+                                      full_page=True)
             return
         except Exception as ex:
             if isinstance(ex, NoSlotsError):
@@ -88,7 +90,7 @@ async def main(conf: AppConfig):
                 await tab.save_screenshot(script_dir / f'{datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")}-result.jpeg', full_page=True)
                 browser.stop()
 
-        attempt_sleep = random.randint(30, 70)
+        attempt_sleep = random.randint(50, 70)
         logging.info(f"Sleeping for {attempt_sleep} seconds before next attempt")
         await asyncio.sleep(attempt_sleep)
 
