@@ -34,65 +34,72 @@ async def main(conf: AppConfig):
         browser = await uc.start(browser_args=['--guest'])
         tab = await browser.get('https://visa.vfsglobal.com/rus/en/nld/login')
         try:
+            await perform_login(tab, conf.login_info)
+
+            await wait_loader(tab)
+            await random_sleep(max_millis=1500)
+            await wait_loader(tab)
+
+            await find_button_with_text(tab, 'Start New Booking')
+        except RuntimeError:
+            browser.stop()
+            logging.info("Unable to login, sleep and retry later")
+            await asyncio.sleep(60)
+            continue
+
+        max_retries_per_tab = 10
+        for i in range(max_retries_per_tab):
             try:
-                await perform_login(tab, conf.login_info)
-
                 await wait_loader(tab)
-                await random_sleep(max_millis=1500)
-                await wait_loader(tab)
-
                 start_new_booking_button = await find_button_with_text(tab, 'Start New Booking')
                 await start_new_booking_button.click()
                 logging.info("Started new booking")
-            except RuntimeError:
-                logging.exception("Throw unable to login exception")
-                raise UnableToLoginError("Can't login")
 
-            await fill_appointment_details(tab, conf.centers)
-            continue_button = await find_button_with_text(tab, text='Continue')
-            await continue_button.click()
+                await fill_appointment_details(tab, conf.centers)
+                continue_button = await find_button_with_text(tab, text='Continue')
+                await continue_button.click()
 
-            await wait_loader(tab)
-            await fill_personal_details(tab, conf.personal_data)
+                await wait_loader(tab)
+                await fill_personal_details(tab, conf.personal_data)
 
-            await wait_loader(tab)
-            continue_button = await find_button_with_text(tab, 'Continue')
-            await continue_button.click()
+                await wait_loader(tab)
+                continue_button = await find_button_with_text(tab, 'Continue')
+                await continue_button.click()
 
-            await select_slot(tab, conf.slot_info)
-            await wait_loader(tab)
-            continue_button = await find_button_with_text(tab, 'Continue')
-            await continue_button.click()
+                await select_slot(tab, conf.slot_info)
+                await wait_loader(tab)
+                continue_button = await find_button_with_text(tab, 'Continue')
+                await continue_button.click()
 
-            await wait_loader(tab)
-            await review_appointment(tab)
+                await wait_loader(tab)
+                await review_appointment(tab)
 
-            confirm_button = await find_button_with_text(tab, 'Confirm')
-            await confirm_button.click()
+                confirm_button = await find_button_with_text(tab, 'Confirm')
+                await confirm_button.click()
 
-            await wait_loader(tab)
-            logging.info("Booked a slot")
-            await tab.save_screenshot(script_dir / f'booked-slot-{datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")}.jpeg',
-                                      full_page=True)
-            return
-        except Exception as ex:
-            if isinstance(ex, NoSlotsError):
-                browser.stop()
-                logging.info("No slots available, retry later")
-            elif isinstance(ex, UnableToLoginError):
-                browser.stop()
-                logging.info("Unable to login, sleep additional time")
-                await asyncio.sleep(30)
-            else:
-                logging.exception("Caught an exception a slot booking:")
-                # uncomment for debug
-                # await asyncio.sleep(10000)
-                await tab.save_screenshot(script_dir / f'{datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")}-result.jpeg', full_page=True)
-                browser.stop()
+                await wait_loader(tab)
+                logging.info("Booked a slot")
+                await tab.save_screenshot(
+                    script_dir / f'booked-slot-{datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")}.jpeg',
+                    full_page=True)
+                return
+            except Exception as ex:
+                if isinstance(ex, NoSlotsError):
+                    logging.info("No slots available, retry later")
+                else:
+                    logging.exception("Caught an exception a slot booking:")
+                    # uncomment for debug
+                    # await asyncio.sleep(10000)
+                    await tab.save_screenshot(script_dir / f'{datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")}-result.jpeg', full_page=True)
 
-        attempt_sleep = random.randint(50, 70)
-        logging.info(f"Sleeping for {attempt_sleep} seconds before next attempt")
-        await asyncio.sleep(attempt_sleep)
+                if i + 1 != max_retries_per_tab:
+                    logo_link = await tab.select(selector='div.navbar > div > a.navbar-brand')
+                    await logo_link.scroll_into_view()
+                    await logo_link.click()
+
+                    attempt_sleep = random.randint(25, 40)
+                    logging.info(f"Sleeping for {attempt_sleep} seconds before next attempt")
+                    await asyncio.sleep(attempt_sleep)
 
 async def perform_login(tab: uc.Tab, login_info: LoginInfo):
     # cookie
