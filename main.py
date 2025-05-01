@@ -30,9 +30,17 @@ center_to_appointment_center_details = {
 }
 
 async def main(conf: AppConfig):
+    browser = None
     while True:
-        browser = await uc.start(browser_args=['--guest'])
-        tab = await browser.get('https://visa.vfsglobal.com/rus/en/nld/login')
+        try:
+            browser = await uc.start(browser_args=['--guest'])
+            tab = await browser.get('https://visa.vfsglobal.com/rus/en/nld/login')
+        except Exception:
+            if browser is not None:
+                browser.stop()
+            logging.exception("Unable to start browser, retry after some sleep")
+            continue
+
         try:
             await perform_login(tab, conf.login_info)
 
