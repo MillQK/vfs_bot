@@ -98,7 +98,7 @@ async def main(conf: AppConfig):
                     await logo_link.scroll_into_view()
                     await logo_link.click()
 
-                    attempt_sleep = random.randint(25, 40)
+                    attempt_sleep = random.randint(50, 70)
                     logging.info(f"Sleeping for {attempt_sleep} seconds before next attempt")
                     await asyncio.sleep(attempt_sleep)
                 else:
