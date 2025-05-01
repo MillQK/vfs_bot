@@ -55,7 +55,7 @@ async def main(conf: AppConfig):
             await asyncio.sleep(60)
             continue
 
-        max_retries_per_tab = 10
+        max_retries_per_tab = 5
         for i in range(max_retries_per_tab):
             try:
                 logging.info(f"Retry {i}")
