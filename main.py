@@ -41,9 +41,9 @@ async def main(conf: AppConfig):
             await wait_loader(tab)
 
             await find_button_with_text(tab, 'Start New Booking')
-        except RuntimeError:
+        except Exception:
+            logging.exception("Unable to login, sleep and retry later")
             browser.stop()
-            logging.info("Unable to login, sleep and retry later")
             await asyncio.sleep(60)
             continue
 
