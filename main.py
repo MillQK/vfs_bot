@@ -50,6 +50,7 @@ async def main(conf: AppConfig):
         max_retries_per_tab = 10
         for i in range(max_retries_per_tab):
             try:
+                logging.info(f"Retry {i}")
                 await wait_loader(tab)
                 start_new_booking_button = await find_button_with_text(tab, 'Start New Booking')
                 await start_new_booking_button.click()
@@ -99,6 +100,11 @@ async def main(conf: AppConfig):
 
                     attempt_sleep = random.randint(25, 40)
                     logging.info(f"Sleeping for {attempt_sleep} seconds before next attempt")
+                    await asyncio.sleep(attempt_sleep)
+                else:
+                    browser.stop()
+                    attempt_sleep = random.randint(50, 70)
+                    logging.info(f"Sleeping for {attempt_sleep} seconds before attempt with new tab")
                     await asyncio.sleep(attempt_sleep)
 
 async def perform_login(tab: uc.Tab, login_info: LoginInfo):
