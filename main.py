@@ -61,30 +61,30 @@ async def main(conf: AppConfig):
                 logging.info(f"Retry {i}")
                 await wait_loader(tab)
                 start_new_booking_button = await find_button_with_text(tab, 'Start New Booking')
-                await start_new_booking_button.click()
+                await click_with_timeout(start_new_booking_button)
                 logging.info("Started new booking")
 
                 await fill_appointment_details(tab, conf.centers)
                 continue_button = await find_button_with_text(tab, text='Continue')
-                await continue_button.click()
+                await click_with_timeout(continue_button)
 
                 await wait_loader(tab)
                 await fill_personal_details(tab, conf.personal_data)
 
                 await wait_loader(tab)
                 continue_button = await find_button_with_text(tab, 'Continue')
-                await continue_button.click()
+                await click_with_timeout(continue_button)
 
                 await select_slot(tab, conf.slot_info)
                 await wait_loader(tab)
                 continue_button = await find_button_with_text(tab, 'Continue')
-                await continue_button.click()
+                await click_with_timeout(continue_button)
 
                 await wait_loader(tab)
                 await review_appointment(tab)
 
                 confirm_button = await find_button_with_text(tab, 'Confirm')
-                await confirm_button.click()
+                await click_with_timeout(confirm_button)
 
                 await wait_loader(tab)
                 logging.info("Booked a slot")
@@ -104,7 +104,7 @@ async def main(conf: AppConfig):
                 if i + 1 != max_retries_per_tab:
                     logo_link = await tab.select(selector='div.navbar > div > a.navbar-brand')
                     await logo_link.scroll_into_view()
-                    await logo_link.click()
+                    await click_with_timeout(logo_link)
 
                     attempt_sleep = random.randint(50, 70)
                     logging.info(f"Sleeping for {attempt_sleep} seconds before next attempt")
@@ -158,7 +158,7 @@ async def fill_appointment_details(tab: uc.Tab, centers: list[str]):
         await centre_selector.scroll_into_view()
         await centre_selector.mouse_click()
         center_dropdown_option = await find_dropdown_option_with_label(tab, appointment_center_details.center)
-        await center_dropdown_option.click()
+        await click_with_timeout(center_dropdown_option)
         logging.info("Selected center dropdown option")
 
         await wait_loader(tab)
@@ -166,7 +166,7 @@ async def fill_appointment_details(tab: uc.Tab, centers: list[str]):
         await category_selector.scroll_into_view()
         await category_selector.mouse_click()
         category_dropdown_option = await find_dropdown_option_with_label(tab, appointment_center_details.category)
-        await category_dropdown_option.click()
+        await click_with_timeout(category_dropdown_option)
         logging.info("Selected category dropdown option")
 
         await wait_loader(tab)
@@ -175,7 +175,7 @@ async def fill_appointment_details(tab: uc.Tab, centers: list[str]):
         await sub_category_selector.scroll_into_view()
         await sub_category_selector.mouse_click()
         sub_category_dropdown_option = await find_dropdown_option_with_label(tab, appointment_center_details.sub_category)
-        await sub_category_dropdown_option.click()
+        await click_with_timeout(sub_category_dropdown_option)
         logging.info("Selected sub-category dropdown option")
 
         await wait_loader(tab)
@@ -199,7 +199,7 @@ async def fill_personal_details(tab: uc.Tab, personal_data: PersonalData):
     await gender_selector.scroll_into_view()
     await gender_selector.mouse_click()
     gender_selector_option = await find_dropdown_option_with_label(tab, personal_data.gender)
-    await gender_selector_option.click()
+    await click_with_timeout(gender_selector_option)
 
     date_of_birth = await tab.select(selector='input[id="dateOfBirth"]')
     await date_of_birth.send_keys(personal_data.date_of_birth)
@@ -208,7 +208,7 @@ async def fill_personal_details(tab: uc.Tab, personal_data: PersonalData):
     await nationality_selector.scroll_into_view()
     await nationality_selector.mouse_click()
     nationality_selector_option = await find_dropdown_option_with_label(tab, personal_data.nationality)
-    await nationality_selector_option.click()
+    await click_with_timeout(nationality_selector_option)
 
     passport_number_input = await find_input_with_label(tab, 'Passport Number')
     await passport_number_input.send_keys(personal_data.passport_number)
@@ -229,7 +229,7 @@ async def fill_personal_details(tab: uc.Tab, personal_data: PersonalData):
     await random_sleep()
 
     save_button = await find_button_with_text(tab, 'Save')
-    await save_button.click()
+    await click_with_timeout(save_button)
 
 async def select_slot(tab: uc.Tab, slot_info: SlotInfo):
     today = date.today()
@@ -255,7 +255,7 @@ async def select_slot(tab: uc.Tab, slot_info: SlotInfo):
         if last_slot_date < from_date:
             logging.info("current last slot is too early, go to the next month")
             next_month_button = await find_next_month_calendar_button(tab)
-            await next_month_button.click()
+            await click_with_timeout(next_month_button)
             continue
 
         for slot in all_month_slots:
@@ -270,17 +270,17 @@ async def select_slot(tab: uc.Tab, slot_info: SlotInfo):
                 if select_slot_button is not None:
                     logging.info("found slot time button, clicking it")
                     await select_slot_button.scroll_into_view()
-                    await select_slot_button.click()
+                    await click_with_timeout(select_slot_button)
                     return
 
         logging.info("slot wasn't found this month, go to the next month")
         next_month_button = await find_next_month_calendar_button(tab)
         await next_month_button.scroll_into_view()
-        await next_month_button.click()
+        await click_with_timeout(next_month_button)
 
 async def review_appointment(tab: uc.Tab):
     accept_terms_checkbox = await tab.select(selector='input[type="checkbox"][value="VAS T&Cs"]')
-    await accept_terms_checkbox.click()
+    await click_with_timeout(accept_terms_checkbox)
 
 async def find_button_with_text(tab: uc.Tab, text: str, timeout: int = 10) -> uc.Element:
     loop = asyncio.get_running_loop()
@@ -344,6 +344,9 @@ async def find_next_month_calendar_button(tab: uc.Tab) -> uc.Element:
 async def wait_loader(tab: uc.Tab):
     logging.info("waiting loader")
     await tab.wait_for(selector='ngx-ui-loader > div[class="ngx-overlay"]', timeout=30)
+
+def click_with_timeout(elem: uc.Element, timeout: int = 10):
+    return asyncio.wait_for(elem.click(), timeout)
 
 def parse_slot_date(date_str: str) -> date:
     formate_date = '%Y-%m-%d'
