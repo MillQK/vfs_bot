@@ -33,8 +33,9 @@ async def main(conf: AppConfig):
     browser = None
     while True:
         try:
-            browser = await uc.start(browser_args=['--guest'])
-            tab = await browser.get('https://visa.vfsglobal.com/rus/en/nld/login')
+            async with asyncio.timeout(60):
+                browser = await uc.start(browser_args=['--guest'])
+                tab = await browser.get('https://visa.vfsglobal.com/rus/en/nld/login')
         except Exception:
             if browser is not None:
                 browser.stop()
@@ -42,13 +43,14 @@ async def main(conf: AppConfig):
             continue
 
         try:
-            await perform_login(tab, conf.login_info)
+            async with asyncio.timeout(60):
+                await perform_login(tab, conf.login_info)
 
-            await wait_loader(tab)
-            await random_sleep(max_millis=1500)
-            await wait_loader(tab)
+                await wait_loader(tab)
+                await random_sleep(max_millis=1500)
+                await wait_loader(tab)
 
-            await find_button_with_text(tab, 'Start New Booking')
+                await find_button_with_text(tab, 'Start New Booking')
         except Exception:
             logging.exception("Unable to login, sleep and retry later")
             browser.stop()
@@ -58,40 +60,41 @@ async def main(conf: AppConfig):
         max_retries_per_tab = 5
         for i in range(max_retries_per_tab):
             try:
-                logging.info(f"Retry {i}")
-                await wait_loader(tab)
-                start_new_booking_button = await find_button_with_text(tab, 'Start New Booking')
-                await click_with_timeout(start_new_booking_button)
-                logging.info("Started new booking")
+                async with asyncio.timeout(300):
+                    logging.info(f"Retry {i}")
+                    await wait_loader(tab)
+                    start_new_booking_button = await find_button_with_text(tab, 'Start New Booking')
+                    await click_with_timeout(start_new_booking_button)
+                    logging.info("Started new booking")
 
-                await fill_appointment_details(tab, conf.centers)
-                continue_button = await find_button_with_text(tab, text='Continue')
-                await click_with_timeout(continue_button)
+                    await fill_appointment_details(tab, conf.centers)
+                    continue_button = await find_button_with_text(tab, text='Continue')
+                    await click_with_timeout(continue_button)
 
-                await wait_loader(tab)
-                await fill_personal_details(tab, conf.personal_data)
+                    await wait_loader(tab)
+                    await fill_personal_details(tab, conf.personal_data)
 
-                await wait_loader(tab)
-                continue_button = await find_button_with_text(tab, 'Continue')
-                await click_with_timeout(continue_button)
+                    await wait_loader(tab)
+                    continue_button = await find_button_with_text(tab, 'Continue')
+                    await click_with_timeout(continue_button)
 
-                await select_slot(tab, conf.slot_info)
-                await wait_loader(tab)
-                continue_button = await find_button_with_text(tab, 'Continue')
-                await click_with_timeout(continue_button)
+                    await select_slot(tab, conf.slot_info)
+                    await wait_loader(tab)
+                    continue_button = await find_button_with_text(tab, 'Continue')
+                    await click_with_timeout(continue_button)
 
-                await wait_loader(tab)
-                await review_appointment(tab)
+                    await wait_loader(tab)
+                    await review_appointment(tab)
 
-                confirm_button = await find_button_with_text(tab, 'Confirm')
-                await click_with_timeout(confirm_button)
+                    confirm_button = await find_button_with_text(tab, 'Confirm')
+                    await click_with_timeout(confirm_button)
 
-                await wait_loader(tab)
-                logging.info("Booked a slot")
-                await tab.save_screenshot(
-                    script_dir / f'booked-slot-{datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")}.jpeg',
-                    full_page=True)
-                return
+                    await wait_loader(tab)
+                    logging.info("Booked a slot")
+                    await tab.save_screenshot(
+                        script_dir / f'booked-slot-{datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")}.jpeg',
+                        full_page=True)
+                    return
             except Exception as ex:
                 if isinstance(ex, NoSlotsError):
                     logging.info("No slots available, retry later")
