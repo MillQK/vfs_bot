@@ -1,13 +1,16 @@
 import asyncio
 import json
 import logging
+import os.path
 import pathlib
 import random
+import shutil
 
 from config import AppConfig, PersonalData, LoginInfo, SlotInfo
 from datetime import date, datetime, timedelta, UTC
 from utils import NoSlotsError, UnableToLoginError
 import nodriver as uc
+import tempfile
 
 script_dir = pathlib.Path(__file__).resolve().parent
 
@@ -33,8 +36,11 @@ async def main(conf: AppConfig):
     browser = None
     while True:
         try:
+            browser_profile_path = get_browser_profile_path()
+            logging.info(f"Using {browser_profile_path} path for browser user profile data")
+
             async with asyncio.timeout(60):
-                browser = await uc.start(browser_args=['--guest'])
+                browser = await uc.start(user_data_dir = browser_profile_path, browser_args=['--guest'])
                 tab = await browser.get('https://visa.vfsglobal.com/rus/en/nld/login')
         except Exception:
             if browser is not None:
@@ -369,6 +375,11 @@ def parse_config(config_file_path: pathlib.Path) -> AppConfig:
             centers=config_json['centers'],
         )
 
+def get_browser_profile_path():
+    path = os.path.join(tempfile.gettempdir(), "vfs_bot_profile")
+    shutil.rmtree(path, ignore_errors=True)
+    os.mkdir(path)
+    return path
 
 if __name__ == '__main__':
     logging.basicConfig(
